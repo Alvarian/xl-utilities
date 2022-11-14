@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "xl_utility"
+version = "0.1.0"
+description = ""
+authors = ["Ivan Alvarez <alvarivan88@gmail.com>"]
+readme = "README.md"
+packages = [{include = "xl_utility"}]
+homepage = "https://github.com/Alvarian/xl-utilities"
+repository = "https://github.com/Alvarian/xl-utilities"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pendulum = "^2.1.2"
+openpyxl = "^3.0.10"
+pytest = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# [project.urls]
+# "Homepage" = "https://github.com/Alvarian/xl-utilities"
+# "Bug Tracker" = "https://github.com/Alvarian/xl-utilities/issues"

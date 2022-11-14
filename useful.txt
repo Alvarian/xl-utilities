@@ -1,0 +1,20 @@
+python -m build
+
+twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+pip install --upgrade --user -i https://test.pypi.org/simple/ xl-utilities
+
+poetry build
+<<<
+    poetry config repositories.testpypi https://test.pypi.org/legacy/
+    poetry config pypi-token.testpypi <your-token>
+
+    poetry config --list 
+    poetry config repositories.test-pypi.url --unset
+
+    poetry publish -r testpypi -u <username> -p <password> --dry-run
+    poetry publish -r testpypi -u <username> -p <password> 
+>>>
+poetry publish -r testpypi
+
+pytest test/*.py
