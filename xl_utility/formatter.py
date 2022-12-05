@@ -134,7 +134,7 @@ def _find_column_by_name(name, ws):
 
 
 def _parse_sheet_data(col_names, handle_alterations, excel_file):
-    if type(col_names) is not list:
+    if type(col_names) is not list or not all(list(map(lambda x: type(x) == str, col_names))):
         raise TypeError("Arg with type {} is not list of strings".format(type(col_names)))
 
     list_of_test_payloads = list()

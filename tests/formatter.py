@@ -51,3 +51,4 @@ def test_capitalizeFirstLetter():
 def test_capitalizeAll():
   assert capitalizeAll(["name", "Full names"], EXCEL_FILE) == _assemble_comparison(["name", "Full names"], "capitalize")
   _main_raise_checkers(capitalizeAll)
+  
