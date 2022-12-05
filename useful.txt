@@ -17,4 +17,5 @@ poetry build
 >>>
 poetry publish -r testpypi
 
-pytest test/*.py
+test all: pytest test/*.py
+test marker(one): pytest -s tests/formatter.py -m cf   
