@@ -1,12 +1,14 @@
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
+from tempfile import NamedTemporaryFile
 
-from functools import partial
 import re, string
 
 
-def separateNames(col_names, excel_file):
+def separate_names(col_names, excel_file):
     def _separated_name(col_name, list_of_test_payloads, ws, condition):
+        _shared_not_text_exception(col_name, ws)
+
         if not _find_column_by_name("lastname", ws):
             ws.insert_cols(0)
             ws["A1"].value = "First Name"
@@ -40,7 +42,7 @@ def separateNames(col_names, excel_file):
                 for row_idx in condition:
                     cell = split_cols[col_position][int(row_idx)-1].title()
                     ws[col_letter + str(int(row_idx)+1)].value = cell
-                
+                    
                     altered_for_test["data"].append(cell)
 
                 return altered_for_test
@@ -49,11 +51,11 @@ def separateNames(col_names, excel_file):
             list_of_test_payloads.append(_new_column(has_last, "last"))
         
         _validate_column(_core, col_name, col_names, ws)
+        ws.delete_cols(3)
 
     return _parse_sheet_data(col_names, _separated_name, excel_file)
 
-
-def separateAddresses(col_names, excel_file):
+def separate_addresses(col_names, excel_file):
     def _separated_address(col_name, list_of_test_payloads, ws, condition):
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
@@ -72,8 +74,7 @@ def separateAddresses(col_names, excel_file):
 
     return _parse_sheet_data(col_names, _separated_address, excel_file)
 
-
-def capitalizeFirstLetter(col_names, excel_file):
+def capitalize_firstLetter(col_names, excel_file):
     def _capitalized_first(col_name, list_of_test_payloads, ws, condition):
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
@@ -87,8 +88,7 @@ def capitalizeFirstLetter(col_names, excel_file):
 
     return _parse_sheet_data(col_names, _capitalized_first, excel_file)
 
-
-def capitalizeAll(col_names, excel_file):
+def capitalize_all(col_names, excel_file):
     def _capitalize_all(col_name, list_of_test_payloads, ws, condition):
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
@@ -102,6 +102,19 @@ def capitalizeAll(col_names, excel_file):
     
     return _parse_sheet_data(col_names, _capitalize_all, excel_file)
 
+
+
+# Private functions
+
+def _shared_not_text_exception(col_name, ws):
+    temp = re.compile("([a-zA-Z]+)")
+    if not temp.match(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value.replace(" ", "")):
+        raise TypeError("Non text cells are forbidden in this function")
+
+def _shared_has_text_exception(col_name, ws):
+    temp = re.compile("([a-zA-Z]+)")
+    if temp.match(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value.replace(" ", "")):
+        raise TypeError("Text cells are forbidden in this function")
 
 def _validate_column(_core, col_name, col_names, ws):
     has_initial = _find_column_by_name(col_name, ws)
@@ -132,12 +145,14 @@ def _find_column_by_name(name, ws):
     
     return None if name_payload not in col_names else get_column_letter(col_names.index(name_payload)+1)
 
-
 def _parse_sheet_data(col_names, handle_alterations, excel_file):
     if type(col_names) is not list or not all(list(map(lambda x: type(x) == str, col_names))):
         raise TypeError("Arg with type {} is not list of strings".format(type(col_names)))
 
-    list_of_test_payloads = list()
+    payload = {
+        "test_list": list(),
+        "buffer": None
+    }
 
     wb = load_workbook(filename=excel_file, data_only=True)
     ws = wb.active
@@ -147,14 +162,20 @@ def _parse_sheet_data(col_names, handle_alterations, excel_file):
     # Filters column names
     for name in col_names:
         try:
-            handle_alterations(name, list_of_test_payloads, ws, condition)
+            handle_alterations(name, payload["test_list"], ws, condition)
         except Exception as error:
             print(error)
             continue
 
-    if len(list_of_test_payloads) == 0:
-        raise ValueError("Column names do not exist")
+    if len(payload["test_list"]) == 0:
+        raise ValueError("Column names, {}, do not exist".format(col_names))
 
-    return list_of_test_payloads
+    tmp = NamedTemporaryFile()
+    wb.save(tmp.name)
+    tmp.seek(0)
+    stream = tmp.read()
+    payload["buffer"] = stream
+
+    return payload
 
     

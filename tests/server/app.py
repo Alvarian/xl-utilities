@@ -3,7 +3,7 @@ from xl_utility.formatter import *
 
 from inspect import getmembers, isfunction
 from io import BytesIO
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, send_file, Response
 
 app = Flask(__name__)
 app.debug = True
@@ -58,8 +58,18 @@ def get_separated_addresses():
 def get_separated_names():
     EXCEL_FILE = BytesIO(request.files["file"].read())
 
-    return send_file(
-        BytesIO(separate_names(request.form["columns_selected"].split(","), EXCEL_FILE)["buffer"]), 
-        download_name="new_sheet.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    try:
+        has_altered_sheet = separate_names(request.form["columns_selected"].split(","), EXCEL_FILE)
+
+        return send_file(
+            BytesIO(has_altered_sheet["buffer"]), 
+            download_name="new_sheet.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as error:
+        print(error)
+
+        return Response(
+            error,
+            status=403,
+        )

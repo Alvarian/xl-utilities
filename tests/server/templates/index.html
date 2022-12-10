@@ -159,9 +159,8 @@
                 [...dropArea].forEach(x => x.addEventListener(eventName, unhighlight, false));
             });
 
-            function handleSubmission(file, featureEndpoint) {
+            function handleSubmission(e, file, featureEndpoint) {
                 let formData = new FormData();
-                console.log(file, featureEndpoint)
                 const columnsSelected = [...document.getElementsByClassName("column")].filter(x => x.selected).map(x => x.value);
                 formData.append('columns_selected', columnsSelected);
                 formData.append('file', file);
@@ -172,7 +171,7 @@
                     method: 'POST',
                     body: formData
                 })
-                    .then((response) => response.blob())
+                    .then((response) => {if (response.ok) return response.blob()})
                     .then((blob) => URL.createObjectURL(blob))
                     .then((href) => {
                         const a = document.createElement("a");
@@ -181,19 +180,8 @@
                         a.href = href;
                         a.download = file;
                         a.click();
-                    });
-            }
-            function download(blob, filename) {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                // the filename you want
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
+                    })
+                    .catch(err => console.log(err))
             }
             async function uploadFile(file, feature) {                
                 const data = await file.arrayBuffer();
@@ -223,7 +211,7 @@
                 modal.style.display = "block";
 
                 const submitBtn = document.getElementById("submitBtn");
-                submitBtn.onclick = () => handleSubmission(file, feature)
+                submitBtn.onclick = (e) => handleSubmission(e, file, feature)
             }
             function handleDrop(e, featureName) {
                 let dt = e.dataTransfer;

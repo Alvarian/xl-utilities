@@ -23,32 +23,41 @@ def _assemble_comparison(col_names, alter_name):
   
 def _main_raise_checkers(_unit):
   with pytest.raises(Exception) as e_info:
-    _unit(42)
+    _unit(42, EXCEL_FILE)
 
   with pytest.raises(Exception) as e_info:
-    _unit(["name", 0])
-
-  with pytest.raises(Exception) as e_info:
-    _unit(["Constantinople", "icantspell"])
+    _unit(["name", 0], EXCEL_FILE)
     
 
 @pytest.mark.sn
 def test_separateNames():
-  assert separateNames(["name", "Full names"], EXCEL_FILE) == _assemble_comparison(["First Name", "Last Name"], "seperate name")
-  _main_raise_checkers(separateNames)
+  assert separate_names(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["First Name", "Last Name"], "seperate name")
+  _main_raise_checkers(separate_names)
+
+  with pytest.raises(Exception) as e_info:
+    separate_names(["street address"], EXCEL_FILE)
+
+  with pytest.raises(Exception) as e_info:
+    separate_names(["phone number"], EXCEL_FILE)
 
 @pytest.mark.sa
 def test_separateAddresses():
-  assert separateAddresses(["address", "street address"], EXCEL_FILE) == _assemble_comparison(["street address"], "seperate address")
-  _main_raise_checkers(separateAddresses)
+  assert separate_addresses(["address", "street address"], EXCEL_FILE)["test_list"] == _assemble_comparison(["street address"], "seperate address")
+  _main_raise_checkers(separate_addresses)
+
+  # with pytest.raises(Exception) as e_info:
+  #   separate_addresses(["phone number"], EXCEL_FILE)
 
 @pytest.mark.cf
 def test_capitalizeFirstLetter():
-  assert capitalizeFirstLetter(["name", "Full names"], EXCEL_FILE) == _assemble_comparison(["name"], "capitalizeFirst")
-  _main_raise_checkers(capitalizeFirstLetter)
+  assert capitalize_firstLetter(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["name"], "capitalizeFirst")
+  _main_raise_checkers(capitalize_firstLetter)
 
 @pytest.mark.ca
 def test_capitalizeAll():
-  assert capitalizeAll(["name", "Full names"], EXCEL_FILE) == _assemble_comparison(["name", "Full names"], "capitalize")
-  _main_raise_checkers(capitalizeAll)
+  assert capitalize_all(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["name", "Full names"], "capitalize")
+  _main_raise_checkers(capitalize_all)
+
+  with pytest.raises(Exception) as e_info:
+    capitalize_all(["phone number"], EXCEL_FILE)
   

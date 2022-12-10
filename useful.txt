@@ -17,5 +17,7 @@ poetry build
 >>>
 poetry publish -r testpypi
 
+AFTER poetry shell
 test all: pytest test/*.py
 test marker(one): pytest -s tests/formatter.py -m cf   
+in server directory: flask run
