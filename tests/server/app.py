@@ -1,5 +1,6 @@
-from xl_utility import formatter
+from xl_utility import formatter, determinizer
 from xl_utility.formatter import *
+from xl_utility.determinizer import *
 
 from inspect import getmembers, isfunction
 from io import BytesIO
@@ -8,19 +9,19 @@ from flask import Flask, request, render_template, send_file, session
 app = Flask(__name__)
 app.debug = True
 app.secret_key = "development key"
-app.config.update(
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-)
+
 
 @app.route("/")
 def index():
-    omitted_functions = ["NamedTemporaryFile", "load_workbook", "get_column_letter"]
-    feature_names = list(filter(lambda x: bool(x[0].split("_")[0]) and not x[0].split()[0] in omitted_functions, getmembers(formatter, isfunction)))
+    omitted_functions = ["NamedTemporaryFile", "load_workbook", "get_column_letter", "generate_uuid"]
+
+    formatter_features = list(filter(lambda x: bool(x[0].split("_")[0]) and not x[0].split()[0] in omitted_functions, getmembers(formatter, isfunction)))
+    determinizer_features = list(filter(lambda x: bool(x[0].split("_")[0]) and not x[0].split()[0] in omitted_functions, getmembers(determinizer, isfunction)))
+
+    feature_names = formatter_features + determinizer_features
     return render_template("index.html", features=feature_names)
 
-@app.route("/formatter/capitalize_all", methods = ["POST"])
+@app.route("/capitalize_all", methods = ["POST"])
 def get_capitalized_column():
     EXCEL_FILE = BytesIO(request.files["file"].read())
 
@@ -31,7 +32,7 @@ def get_capitalized_column():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ), has_altered_sheet["exception"] or None
 
-@app.route("/formatter/capitalize_firstletter", methods = ["POST"])
+@app.route("/capitalize_firstletter", methods = ["POST"])
 def get_capitalized_first():
     EXCEL_FILE = BytesIO(request.files["file"].read())
 
@@ -42,7 +43,7 @@ def get_capitalized_first():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ), has_altered_sheet["exception"] or None
 
-@app.route("/formatter/separate_addresses", methods = ["POST"])
+@app.route("/separate_addresses", methods = ["POST"])
 def get_separated_addresses():
     EXCEL_FILE = BytesIO(request.files["file"].read())
 
@@ -53,7 +54,7 @@ def get_separated_addresses():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ), has_altered_sheet["exception"] or None
 
-@app.route("/formatter/separate_names", methods = ["POST"])
+@app.route("/separate_names", methods = ["POST"])
 def get_separated_names():
     EXCEL_FILE = BytesIO(request.files["file"].read())
 

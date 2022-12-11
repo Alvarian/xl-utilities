@@ -165,7 +165,7 @@
                 formData.append('columns_selected', columnsSelected);
                 formData.append('file', file);
 
-                let url = `/formatter/${featureEndpoint}`;
+                let url = `/${featureEndpoint}`;
 
                 try {
                     const response = await fetch(url, {
