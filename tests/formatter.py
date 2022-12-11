@@ -45,22 +45,21 @@ def test_separateAddresses():
   assert separate_addresses(["address", "street address"], EXCEL_FILE)["test_list"] == _assemble_comparison(["street address"], "seperate address")
   _main_raise_checkers(separate_addresses)
 
-  # with pytest.raises(Exception) as e_info:
-  #   separate_addresses(["phone number"], EXCEL_FILE)
+  assert separate_addresses(["phone number"], EXCEL_FILE)["exception"] == "Number cells are forbidden in this function. -phone number is rejected! "
+
 
 @pytest.mark.cf
 def test_capitalizeFirstLetter():
   assert capitalize_firstLetter(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["name"], "capitalizeFirst")
   _main_raise_checkers(capitalize_firstLetter)
 
-  # with pytest.raises(Exception) as e_info:
-  #   capitalize_firstLetter(["phone number"], EXCEL_FILE)  
+  assert capitalize_firstLetter(["phone number"], EXCEL_FILE)["exception"] == "Number cells are forbidden in this function. -phone number is rejected! "
+
 
 @pytest.mark.ca
 def test_capitalizeAll():
   assert capitalize_all(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["name", "Full names"], "capitalize")
   _main_raise_checkers(capitalize_all)
 
-  with pytest.raises(Exception) as e_info:
-    capitalize_all(["phone number"], EXCEL_FILE)
+  assert capitalize_all(["phone number"], EXCEL_FILE)["exception"] == "Number cells are forbidden in this function. -phone number is rejected! "
   

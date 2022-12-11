@@ -8,7 +8,7 @@ import re, string
 def separate_names(col_names, excel_file):
     def _separated_name(col_name, list_of_test_payloads, ws, condition):
         _shared_not_text_exception(col_name, ws)
-
+        
         if not _find_column_by_name("lastname", ws):
             ws.insert_cols(0)
             ws["A1"].value = "First Name"
@@ -57,6 +57,8 @@ def separate_names(col_names, excel_file):
 
 def separate_addresses(col_names, excel_file):
     def _separated_address(col_name, list_of_test_payloads, ws, condition):
+        _shared_has_number_exception(col_name, ws)
+        
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
             temp = re.compile("([0-9]+)([a-zA-Z]+)")
@@ -68,14 +70,16 @@ def separate_addresses(col_names, excel_file):
                 ws[has_initial + str(int(row_idx)+1)].value = altered_cell
 
                 return altered_cell
-
+                
         altered_for_test = _alter_sheet_data(_alter_cell, col_name, col_names, ws)
         list_of_test_payloads.append(altered_for_test)
-
+        
     return _parse_sheet_data(col_names, _separated_address, excel_file)
 
 def capitalize_firstLetter(col_names, excel_file):
     def _capitalized_first(col_name, list_of_test_payloads, ws, condition):
+        _shared_has_number_exception(col_name, ws)
+
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
             altered_cell = cell.title()
@@ -90,6 +94,8 @@ def capitalize_firstLetter(col_names, excel_file):
 
 def capitalize_all(col_names, excel_file):
     def _capitalize_all(col_name, list_of_test_payloads, ws, condition):
+        _shared_has_number_exception(col_name, ws)
+        
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
             altered_cell = cell.upper()
@@ -115,6 +121,11 @@ def _shared_has_text_exception(col_name, ws):
     temp = re.compile("([a-zA-Z]+)")
     if temp.match(_clean_String(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value)):
         raise TypeError("Text cells are forbidden in this function.")
+
+def _shared_has_number_exception(col_name, ws):
+    cleaned_cell = _clean_String(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value)
+    if cleaned_cell.isdigit():
+        raise TypeError("Number cells are forbidden in this function.")    
 
 def _clean_String(string):
     new_string = ''.join(e for e in string if e.isalnum())
@@ -173,7 +184,7 @@ def _parse_sheet_data(col_names, handle_alterations, excel_file):
             payload["exception"] = payload["exception"] + str(error)+" -{} is rejected! ".format(name)
 
             continue
-    
+
     if not len(payload["test_list"]):
         return payload 
     
