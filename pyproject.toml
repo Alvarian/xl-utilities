@@ -13,11 +13,9 @@ python = "^3.7"
 pendulum = "^2.1.2"
 openpyxl = "^3.0.10"
 pytest = "^7.2.0"
+flask = "^2.2.2"
+python-dotenv = "^0.21.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-# [project.urls]
-# "Homepage" = "https://github.com/Alvarian/xl-utilities"
-# "Bug Tracker" = "https://github.com/Alvarian/xl-utilities/issues"

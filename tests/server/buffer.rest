@@ -1,0 +1,13 @@
+POST http://localhost:5000/formatter/capitalize_all
+Accept: application/json 
+Content-Type: multipart/form-data; boundary=MyBoundary
+
+--MyBoundary 
+Content-Disposition: form-data; name="files"; filename="main.xlsx" 
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ../demographics/main.xlsx 
+--MyBoundary--  
+
+###
+GET http://localhost:5000/
