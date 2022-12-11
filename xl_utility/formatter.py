@@ -8,6 +8,7 @@ import re, string
 def separate_names(col_names, excel_file):
     def _separated_name(col_name, list_of_test_payloads, ws, condition):
         _shared_not_text_exception(col_name, ws)
+        _shared_has_email_exception(col_name, ws)
         
         if not _find_column_by_name("lastname", ws):
             ws.insert_cols(0)
@@ -58,6 +59,7 @@ def separate_names(col_names, excel_file):
 def separate_addresses(col_names, excel_file):
     def _separated_address(col_name, list_of_test_payloads, ws, condition):
         _shared_has_number_exception(col_name, ws)
+        _shared_has_email_exception(col_name, ws)
         
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
@@ -95,7 +97,7 @@ def capitalize_firstLetter(col_names, excel_file):
 def capitalize_all(col_names, excel_file):
     def _capitalize_all(col_name, list_of_test_payloads, ws, condition):
         _shared_has_number_exception(col_name, ws)
-        
+
         def _alter_cell(row_idx, has_initial):
             cell = str(ws[has_initial + str(int(row_idx)+1)].value)
             altered_cell = cell.upper()
@@ -110,8 +112,7 @@ def capitalize_all(col_names, excel_file):
 
 
 
-# Private functions
-
+# Exception guards
 def _shared_not_text_exception(col_name, ws):
     temp = re.compile("([a-zA-Z]+)")
     if not temp.match(_clean_String(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value)):
@@ -127,6 +128,13 @@ def _shared_has_number_exception(col_name, ws):
     if cleaned_cell.isdigit():
         raise TypeError("Number cells are forbidden in this function.")    
 
+def _shared_has_email_exception(col_name, ws):
+    pat = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    if re.match(pat, ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value):
+        raise TypeError("Email cells are forbidden in this function.")    
+
+
+# Private functions
 def _clean_String(string):
     new_string = ''.join(e for e in string if e.isalnum())
 

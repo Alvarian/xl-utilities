@@ -34,17 +34,17 @@ def test_separateNames():
   assert separate_names(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["First Name", "Last Name"], "seperate name")
   _main_raise_checkers(separate_names)
 
-  with pytest.raises(Exception) as e_info:
-    separate_names(["street address"], EXCEL_FILE)
+  assert separate_names(["street address"], EXCEL_FILE)["exception"] == "Non text cells are forbidden in this function. -street address is rejected! "
+  assert separate_names(["email address"], EXCEL_FILE)["exception"] == "Email cells are forbidden in this function. -email address is rejected! "
+  assert separate_names(["phone number"], EXCEL_FILE)["exception"] == "Non text cells are forbidden in this function. -phone number is rejected! "
 
-  with pytest.raises(Exception) as e_info:
-    separate_names(["phone number"], EXCEL_FILE)
 
 @pytest.mark.sa
 def test_separateAddresses():
   assert separate_addresses(["address", "street address"], EXCEL_FILE)["test_list"] == _assemble_comparison(["street address"], "seperate address")
   _main_raise_checkers(separate_addresses)
 
+  assert separate_addresses(["email address"], EXCEL_FILE)["exception"] == "Email cells are forbidden in this function. -email address is rejected! "
   assert separate_addresses(["phone number"], EXCEL_FILE)["exception"] == "Number cells are forbidden in this function. -phone number is rejected! "
 
 
