@@ -108,13 +108,18 @@ def capitalize_all(col_names, excel_file):
 
 def _shared_not_text_exception(col_name, ws):
     temp = re.compile("([a-zA-Z]+)")
-    if not temp.match(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value.replace(" ", "")):
-        raise TypeError("Non text cells are forbidden in this function")
+    if not temp.match(_clean_String(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value)):
+        raise TypeError("Non text cells are forbidden in this function.")
 
 def _shared_has_text_exception(col_name, ws):
     temp = re.compile("([a-zA-Z]+)")
-    if temp.match(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value.replace(" ", "")):
-        raise TypeError("Text cells are forbidden in this function")
+    if temp.match(_clean_String(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value)):
+        raise TypeError("Text cells are forbidden in this function.")
+
+def _clean_String(string):
+    new_string = ''.join(e for e in string if e.isalnum())
+
+    return new_string
 
 def _validate_column(_core, col_name, col_names, ws):
     has_initial = _find_column_by_name(col_name, ws)
@@ -122,7 +127,7 @@ def _validate_column(_core, col_name, col_names, ws):
     if has_initial and ws[has_initial + "1"].value.replace(" ", "").lower() in list(map(lambda x: re.sub(r"[^a-zA-Z0-9 ]", "", x.replace(" ", "").lower()), col_names)):   
         return _core(has_initial)
     else:
-        raise KeyError("Column name not found")
+        raise KeyError("Column name not found.")
 
 def _alter_sheet_data(_alter_cell, col_name, col_names, ws):
     def _core(has_column_letter):
@@ -147,11 +152,12 @@ def _find_column_by_name(name, ws):
 
 def _parse_sheet_data(col_names, handle_alterations, excel_file):
     if type(col_names) is not list or not all(list(map(lambda x: type(x) == str, col_names))):
-        raise TypeError("Arg with type {} is not list of strings".format(type(col_names)))
+        raise TypeError("Arg with type {} is not list of strings.".format(type(col_names)))
 
     payload = {
         "test_list": list(),
-        "buffer": None
+        "buffer": None,
+        "exception": ""
     }
 
     wb = load_workbook(filename=excel_file, data_only=True)
@@ -164,12 +170,13 @@ def _parse_sheet_data(col_names, handle_alterations, excel_file):
         try:
             handle_alterations(name, payload["test_list"], ws, condition)
         except Exception as error:
-            print(error)
+            payload["exception"] = payload["exception"] + str(error)+" -{} is rejected! ".format(name)
+
             continue
-
-    if len(payload["test_list"]) == 0:
-        raise ValueError("Column names, {}, do not exist".format(col_names))
-
+    
+    if not len(payload["test_list"]):
+        return payload 
+    
     tmp = NamedTemporaryFile()
     wb.save(tmp.name)
     tmp.seek(0)

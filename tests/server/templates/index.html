@@ -159,7 +159,7 @@
                 [...dropArea].forEach(x => x.addEventListener(eventName, unhighlight, false));
             });
 
-            function handleSubmission(e, file, featureEndpoint) {
+            async function handleSubmission(e, file, featureEndpoint) {
                 let formData = new FormData();
                 const columnsSelected = [...document.getElementsByClassName("column")].filter(x => x.selected).map(x => x.value);
                 formData.append('columns_selected', columnsSelected);
@@ -167,21 +167,31 @@
 
                 let url = `/formatter/${featureEndpoint}`;
 
-                fetch(url, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then((response) => {if (response.ok) return response.blob()})
-                    .then((blob) => URL.createObjectURL(blob))
-                    .then((href) => {
-                        const a = document.createElement("a");
-                        document.body.appendChild(a);
-                        a.style = "display: none";
-                        a.href = href;
-                        a.download = file;
-                        a.click();
-                    })
-                    .catch(err => console.log(err))
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) throw response.text();
+                    
+                    if (response.statusText !== "OK") alert(response.statusText); 
+
+                    const blob = await response.blob();
+                    if (!blob.size) throw "No alterations occured.";
+                    const buffer = URL.createObjectURL(blob);
+
+                    const a = document.createElement("a");
+                    document.body.appendChild(a);
+                    a.style = "display: none";
+                    a.href = buffer;
+                    a.download = file;
+                    a.click();
+                } catch (err) {
+                    alert(err);
+                } finally {
+                    location.reload();
+                }
             }
             async function uploadFile(file, feature) {                
                 const data = await file.arrayBuffer();

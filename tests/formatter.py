@@ -53,6 +53,9 @@ def test_capitalizeFirstLetter():
   assert capitalize_firstLetter(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["name"], "capitalizeFirst")
   _main_raise_checkers(capitalize_firstLetter)
 
+  # with pytest.raises(Exception) as e_info:
+  #   capitalize_firstLetter(["phone number"], EXCEL_FILE)  
+
 @pytest.mark.ca
 def test_capitalizeAll():
   assert capitalize_all(["name", "Full names"], EXCEL_FILE)["test_list"] == _assemble_comparison(["name", "Full names"], "capitalize")

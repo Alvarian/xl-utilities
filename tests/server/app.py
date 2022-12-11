@@ -3,12 +3,16 @@ from xl_utility.formatter import *
 
 from inspect import getmembers, isfunction
 from io import BytesIO
-from flask import Flask, request, render_template, send_file, Response
+from flask import Flask, request, render_template, send_file, session
 
 app = Flask(__name__)
 app.debug = True
 app.secret_key = "development key"
-
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
 
 @app.route("/")
 def index():
@@ -58,18 +62,15 @@ def get_separated_addresses():
 def get_separated_names():
     EXCEL_FILE = BytesIO(request.files["file"].read())
 
-    try:
-        has_altered_sheet = separate_names(request.form["columns_selected"].split(","), EXCEL_FILE)
+    # try:
+    has_altered_sheet = separate_names(request.form["columns_selected"].split(","), EXCEL_FILE)
 
-        return send_file(
-            BytesIO(has_altered_sheet["buffer"]), 
-            download_name="new_sheet.xlsx",
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    except Exception as error:
-        print(error)
+    return send_file(
+        BytesIO(has_altered_sheet["buffer"]), 
+        download_name="new_sheet.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ), has_altered_sheet["exception"] or None
+    # except Exception as error:
+    #     print(error)
 
-        return Response(
-            error,
-            status=403,
-        )
+    #     return str(error), 403
