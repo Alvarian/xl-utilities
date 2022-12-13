@@ -6,33 +6,11 @@ import re, string
 
 
 
-def separate_addresses(col_names, excel_file):
-    def _separated_address(col_name, list_of_test_payloads, ws, condition):
-        _shared_has_number_exception(col_name, ws)
-        _shared_has_email_exception(col_name, ws)
-        
-        def _alter_cell(row_idx, has_initial):
-            cell = str(ws[has_initial + str(int(row_idx)+1)].value)
-            temp = re.compile("([0-9]+)([a-zA-Z]+)")
+# def guess_gender(col_names, excel_file):
+#     return "guess"
 
-            if len(cell.split()) > 1:
-                return cell
-            else:
-                altered_cell = " ".join(map(lambda x: x.capitalize(), temp.match(cell).groups()))
-                ws[has_initial + str(int(row_idx)+1)].value = altered_cell
-
-                return altered_cell
-                
-        altered_for_test = _alter_sheet_data(_alter_cell, col_name, col_names, ws)
-        list_of_test_payloads.append(altered_for_test)
-        
-    return _parse_sheet_data(col_names, _separated_address, excel_file)
-
-def guess_gender(col_names, excel_file):
-    return "guess"
-
-def generate_uuid(col_names, excel_file):
-    return "genID"
+# def generate_uuid(col_names, excel_file):
+#     return "genID"
 
 def insert_mock_data(col_names, mock_data, excel_file):
     # Given column and given data(array of, or single), if column not exist create column, if array - iter through into each row, if single - clone through into each row
@@ -61,10 +39,9 @@ def insert_mock_data(col_names, mock_data, excel_file):
         
     return _parse_sheet_data(col_names, _insert, excel_file)
 
-def validate_emails(col_names, excel_file):
-    # Creates new column next to email column specifying per row if email is valid. If invalid, if dup - have cell instruct the other duplicates, if not email - have cell indicate value error
-    return "valEmails"
-
+# def validate_emails(col_names, excel_file):
+#     # Creates new column next to email column specifying per row if email is valid. If invalid, if dup - have cell instruct the other duplicates, if not email - have cell indicate value error
+#     return "valEmails"
 
 
 # Exception guards

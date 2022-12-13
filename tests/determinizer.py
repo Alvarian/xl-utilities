@@ -29,13 +29,13 @@ def _main_raise_checkers(_unit):
         _unit(["name", 0], EXCEL_FILE)
 
 
-@pytest.mark.gg
-def test_guessGender():
-    assert guess_gender() == "guess"
+# @pytest.mark.gg
+# def test_guessGender():
+#     assert guess_gender() == "guess"
 
-@pytest.mark.gu
-def test_generateUUID():
-    assert generate_uuid() == "genID"
+# @pytest.mark.gu
+# def test_generateUUID():
+#     assert generate_uuid() == "genID"
 
 @pytest.mark.im
 def test_generateMockData():
