@@ -2,9 +2,12 @@ import sys, json
 sys.path.insert(0, '')
 
 from xl_utility.formatter import *
+from xl_utility.determinizer import *
+
+EXCEL_FILE = 'tests/demographics/main.xlsx'
 
 
-def _create_altered_data(method_name, payload_of_altered_data):
+def _create_altered_data(method_name, col_name, payload_of_altered_data):
     for altered_data in payload_of_altered_data:
         print(altered_data)
         with open("tests/demographics/main.json",'r+') as file:
@@ -23,8 +26,9 @@ def _create_altered_data(method_name, payload_of_altered_data):
             # convert back to json.
             json.dump(file_data, file, indent = 4)
 
-_create_altered_data("seperate name", separateNames(["name", "Full names"]))
-_create_altered_data("capitalize", capitalizeAll(["name", "Full names", "first name", "last name"]))
-_create_altered_data("capitalizeFirst", capitalizeFirstLetter(["name", "Full names"]))
-_create_altered_data("seperate address", separateAddresses(["address", "street address"]))
+# _create_altered_data("seperate name", separate_names(["name", "Full names"], EXCEL_FILE)["test_list"])
+# _create_altered_data("capitalize", capitalize_all(["name", "Full names", "first name", "last name"], EXCEL_FILE)["test_list"])
+# _create_altered_data("capitalizeFirst", capitalize_firstLetter(["name", "Full names"], EXCEL_FILE)["test_list"])
+# _create_altered_data("seperate address", separate_addresses(["address", "street address"], EXCEL_FILE)["test_list"])
+_create_altered_data("insert mock", "Start Time", insert_mock_data(["Start Time"], "7:00am", EXCEL_FILE)["test_list"])
 
