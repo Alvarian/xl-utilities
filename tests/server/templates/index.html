@@ -101,6 +101,21 @@
         <script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.19.1/package/dist/xlsx.full.min.js"></script>
     </head>
     <body>
+        <h2>Presets</h2>
+        <div class="presetsGrid">
+            <div class="drop-area" ondrop="handleDrop(event, 'events')">
+                <!-- Check against sheet columns looking for name or first name and last name, email or number -->
+                <h3>Events/Summits</h3>
+                <form class="my-form">
+                    <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
+                    <input type="file" id="fileElem" multiple accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onchange="handleFiles(this.files)">
+                    <label class="button" for="fileElem">Select some files</label>
+                </form>
+            </div>
+        </div>
+
+        <hr>
+
         <div class="grid">
             {% for feature in features %}
                 <div class="drop-area" ondrop="handleDrop(event, `{{ feature[0] }}`)">
@@ -114,29 +129,72 @@
             {% endfor %}
         </div>
 
-        <!-- The Modal -->
-        <div id="myModal" class="modal">
+        <!-- Modals -->
+        <div id="alteringModal" class="modal">
             <!-- Modal content -->
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h3 id="title"></h3>
+                <h3 id="alterTitle"></h3>
 
                 <label for="columns" >Choose Columns to Alter:</label>
                 <select name="columns" id="columns" multiple></select> 
 
-                <input type="submit" value="Submit" id="submitBtn" />
+                <input type="submit" value="Submit" id="submitAlter" />
+            </div>
+        </div> 
+
+        <div id="presetModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="presetTitle"></h3>
+
+                <form>
+                    <!-- for name or first name and last name, email or number -->
+                    <p>Input times for both fields:</p>
+                    <label for="startTime">Start Time</label><br>
+                    <input type="text" name="startTime" class="presets" /><br>
+
+                    <label for="endTime">End Time</label><br>
+                    <input type="text" name="endTime" class="presets" />
+                </form>
+
+                <input type="submit" value="Submit" id="submitPreset" />
+            </div>
+        </div>
+
+        <div id="newColumnModal" class="modal">
+            <!-- Modal content -->
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="mockTitle"></h3>
+
+                <form>
+                    <p>Select mock data type:</p>
+                    <label for="ran_names">Random Names</label>
+                    <input type="radio" id="ran_names" name="mockType" value="get_random_names" class="mockOptions" /><br>
+
+                    <label for="custom">Custom:</label>
+                    <input type="radio" id="custom" name="mockType" value="custom" class="mockOptions"><br>
+
+                    <label for="colName">Column Name</label>
+                    <input type="text" name="colName" class="customs" /><br>
+
+                    <label for="colVal">Value</label>
+                    <input type="text" name="colVal" class="customs" />
+                </form>
+
+                <input type="submit" value="Submit" id="submitMock" />
             </div>
         </div> 
 
         <script>
             let dropArea = document.getElementsByClassName('drop-area');
             // Get the <span> element that closes the modal
-            let span = document.getElementsByClassName("close")[0];
+            let span = document.getElementsByClassName("close");
             // Get the modal
-            let modal = document.getElementById("myModal");
-            let title = document.getElementById("title");
-
-            let columns = document.getElementById("columns");
+            let alteringModal = document.getElementById("alteringModal");
+            let newColumnModal= document.getElementById("newColumnModal");
+            let presetModal= document.getElementById("presetModal");
             
             function preventDefaults (e) {
                 e.preventDefault();
@@ -159,15 +217,15 @@
                 [...dropArea].forEach(x => x.addEventListener(eventName, unhighlight, false));
             });
 
-            async function handleSubmission(e, file, featureEndpoint) {
-                let formData = new FormData();
-                const columnsSelected = [...document.getElementsByClassName("column")].filter(x => x.selected).map(x => x.value);
-                formData.append('columns_selected', columnsSelected);
-                formData.append('file', file);
+            async function handleSubmission(formData, file, featureEndpoint, getSelected) {
+                // return false;
 
                 let url = `/${featureEndpoint}`;
 
                 try {
+                    getSelected(formData);
+                    formData.append('file', file);
+
                     const response = await fetch(url, {
                         method: 'POST',
                         body: formData
@@ -197,31 +255,86 @@
                 const data = await file.arrayBuffer();
                 let firstSheetName = Object.keys(XLSX.readFile(data).Sheets)[0];
                 let ws = XLSX.readFile(data).Sheets[firstSheetName];
+                let maxRow = XLSX.utils.decode_range(ws["!ref"]).e.r
                 delete ws["!ref"];
                 delete ws["!margins"];
                 
-                for (let cell in ws) {
-                    if (cell.split("")[1] !== "1") {
+                let formData = new FormData();
+
+                switch (feature) {
+                    case "insert_mock_data":
+                        newColumnModal.style.display = "block";
+                        formData.append("max_row", maxRow);
+
+                        document.getElementById("alterTitle").innerText = firstSheetName;
+                        document.getElementById("submitMock").onclick = (e) => handleSubmission(formData, file, feature, () => {
+                            const mockSelected = [...document.getElementsByClassName("mockOptions")].filter(x => x.checked)[0].value;
+                            formData.append("mock_selected", mockSelected);
+                            formData.append("custom_inputs", [...document.getElementsByClassName("customs")].map(x => x.value));
+                        });
+
                         break;
-                    }
-                    let column_selection = document.createElement("option");
-                    column_selection.value = ws[cell].v;
-                    column_selection.innerText = ws[cell].v;
-                    column_selection.className = "column";
-                    column_selection.onmousedown = (e) => {
-                        e.preventDefault();
-                        e.target.selected = !e.target.selected;
+                    case "events":
+                        document.getElementById("presetTitle").innerText = "Events and Summits Autocomplete";
+                        document.getElementById("submitPreset").onclick = (e) => handleSubmission(formData, file, feature, () => {
+                            let fields = [...document.getElementsByClassName("presets")];
+                            const presetFields = fields.filter(x => x.value).map(x => x.value);
 
-                        return false;
-                    }
-                    columns.appendChild(column_selection);
+                            if (fields.length !== presetFields.length) throw "Please fill out all fields!";
+
+                            let columnsToCheck = [];
+                            for (let cell in ws) {
+                                if (cell.split("")[1] !== "1") break;
+
+                                columnsToCheck.push(ws[cell].v)
+                            }
+
+                            const hasEmail = columnsToCheck.find(x => x === "email") || columnsToCheck.find(x => x === "email address");
+                            if (!hasEmail) throw "This sheet does not have columns for either 'email' or 'email address'!";
+
+                            const hasFirstAndLast = columnsToCheck.find(x => x === "last name") && columnsToCheck.find(x => x === "first name")
+                            const hasName = columnsToCheck.find(x => x === "name") || columnsToCheck.find(x => x === "full name")
+                            if (!(hasName || hasFirstAndLast)) throw "This sheet does not have columns for either 'name', 'full name', 'first name', or 'last name'!";
+
+                            formData.append("preset_fields", JSON.stringify({
+                                "Start Time": presetFields[0],
+                                "End Time": presetFields[1],
+                                "columns": [hasName ? [hasName] : [hasFirstAndLast], hasEmail]
+                            }));
+                        });
+
+                        presetModal.style.display = "block";
+
+                        break;
+                    default:
+                        let columns = document.getElementById("columns");
+                        for (let cell in ws) {
+                            if (cell.split("")[1] !== "1") break;
+
+                            let column_selection = document.createElement("option");
+                            column_selection.value = ws[cell].v;
+                            column_selection.innerText = ws[cell].v;
+                            column_selection.className = "column";
+                            column_selection.onmousedown = (e) => {
+                                e.preventDefault();
+                                e.target.selected = !e.target.selected;
+
+                                return false;
+                            }
+
+                            columns.appendChild(column_selection);
+                        }
+
+                        alteringModal.style.display = "block";
+
+                        document.getElementById("mockTitle").innerText = firstSheetName;
+                        document.getElementById("submitMock").onclick = (e) => handleSubmission(formData, file, feature, () => {
+                            const columnsSelected = [...document.getElementsByClassName("column")].filter(x => x.selected).map(x => x.value);
+                            formData.append('columns_selected', columnsSelected);
+                        });
+
+                        break;
                 }
-
-                title.innerText = firstSheetName;
-                modal.style.display = "block";
-
-                const submitBtn = document.getElementById("submitBtn");
-                submitBtn.onclick = (e) => handleSubmission(e, file, feature)
             }
             function handleDrop(e, featureName) {
                 let dt = e.dataTransfer;
@@ -231,14 +344,12 @@
             }
 
             // When the user clicks on <span> (x), close the modal
-            span.onclick = function() {
-                modal.style.display = "none";
-            }
+            [...span].forEach(x => x.onclick = () => location.reload());
 
             // When the user clicks anywhere outside of the modal, close it
             window.onclick = function(event) {
-                if (event.target == modal) {
-                    modal.style.display = "none";
+                if (event.target == alteringModal || event.target == newColumnModal) {
+                    location.reload();
                 }
             } 
         </script>
