@@ -1,8 +1,9 @@
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 
-import re, string
+from io import BytesIO
+import re, string, csv, io
 
 
 
@@ -12,7 +13,7 @@ import re, string
 # def generate_uuid(col_names, excel_file):
 #     return "genID"
 
-def insert_mock_data(col_names, mock_data, excel_file):
+def insert_mock_data(excel_file, col_names, mock_data):
     # Given column and given data(array of, or single), if column not exist create column, if array - iter through into each row, if single - clone through into each row
     def _insert(col_name, list_of_test_payloads, ws, condition):
         if not _find_column_by_name(col_name, ws):
@@ -20,6 +21,7 @@ def insert_mock_data(col_names, mock_data, excel_file):
             ws["A1"].value = col_name
 
         has_column_letter = str(_find_column_by_name(col_name, ws))
+
         if type(mock_data) == list and len(mock_data) < condition:
             raise AssertionError("Mock data list given is less than total rows. ")
 
@@ -27,12 +29,11 @@ def insert_mock_data(col_names, mock_data, excel_file):
             "column": ws[has_column_letter + "1"].value,
             "data": list()
         }
-
+        
         mock_iter = len(mock_data) if type(mock_data) == list else condition
         for idx in range(1, mock_iter):
             new_cell = mock_data[idx] if type(mock_data) == list else mock_data
             ws[has_column_letter + str(int(idx)+1)].value = new_cell
-
             altered_for_test["data"].append(new_cell)
             
         list_of_test_payloads.append(altered_for_test)
@@ -104,36 +105,75 @@ def _find_column_by_name(name, ws):
 def _parse_sheet_data(col_names, handle_alterations, excel_file):
     if type(col_names) is not list or not all(list(map(lambda x: type(x) == str, col_names))):
         raise TypeError("Arg with type {} is not list of strings.".format(type(col_names)))
-
+    
     payload = {
         "test_list": list(),
         "buffer": None,
         "exception": ""
     }
-
-    wb = load_workbook(filename=excel_file, data_only=True)
-    ws = wb.active
     
-    condition = ws.max_row
-    
-    # Filters column names
-    for name in col_names:
-        try:
-            handle_alterations(name, payload["test_list"], ws, condition)
-        except Exception as error:
-            payload["exception"] = payload["exception"] + str(error)+" -{} is rejected! ".format(name)
+    inbound_buffer = excel_file["buffer"]
+    file_name = inbound_buffer.name if isinstance(inbound_buffer, io.BufferedReader) or isinstance(inbound_buffer, _TemporaryFileWrapper) else inbound_buffer.filename
+    file_data = inbound_buffer.read() if isinstance(inbound_buffer, io.BufferedReader) or isinstance(inbound_buffer, _TemporaryFileWrapper) else inbound_buffer.stream.read()
+    if file_name.split('.')[-1] == "csv":
+        stream = io.StringIO(file_data.decode("utf-8-sig"), newline=None)
+        rows = list(filter(lambda x: x[0] != "", list(csv.reader(stream))))
+        condition = len(rows)
+        
+        wb = Workbook()
+        ws = wb.worksheets[0]
+        ws.title = "A Snazzy Title"
+        
+        for row_idx in range(0, len(rows)):
+            row = rows[row_idx]
 
-            continue
+            for column_index in range(0, len(row)):
+                cell = row[column_index]
+                column_letter = get_column_letter((column_index + 1))
+                ws[column_letter + str(int(row_idx)+1)].value = cell
 
-    if not len(payload["test_list"]):
-        return payload 
-    
-    tmp = NamedTemporaryFile()
-    wb.save(tmp.name)
-    tmp.seek(0)
-    stream = tmp.read()
-    payload["buffer"] = stream
+        # Filters column names
+        for name in col_names:
+            try:
+                handle_alterations(name, payload["test_list"], ws, condition)
+            except Exception as error:
+                payload["exception"] = payload["exception"]+str(error)+" -{} is rejected! ".format(name)
 
-    return payload
+                continue
+            
+        if not len(payload["test_list"]):
+            return payload 
+            
+        tmp = NamedTemporaryFile()
+        wb.save(tmp.name)
+        tmp.seek(0)
+        stream = tmp
+        payload["buffer"] = stream
 
+        return payload
+    else:
+        wb = load_workbook(filename=BytesIO(file_data), data_only=True)
+        ws = wb.active
+        
+        condition = ws.max_row
+        
+        # Filters column names
+        for name in col_names:
+            try:
+                handle_alterations(name, payload["test_list"], ws, condition)
+            except Exception as error:
+                payload["exception"] = payload["exception"] + str(error)+" -{} is rejected! ".format(name)
+
+                continue
+
+        if not len(payload["test_list"]):
+            return payload 
+        
+        tmp = NamedTemporaryFile()
+        wb.save(tmp.name)
+        tmp.seek(0)
+        stream = tmp
+        payload["buffer"] = stream
+        
+        return payload
     

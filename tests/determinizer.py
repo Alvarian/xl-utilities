@@ -1,10 +1,12 @@
 import sys, json
+from io import BytesIO, open
 sys.path.insert(0, '')
 
 from xl_utility.determinizer import *
 import pytest
 
-EXCEL_FILE = 'tests/demographics/main.xlsx'
+# EXCEL_FILE = open('tests/demographics/main.csv', 'rb')
+EXCEL_FILE = open('tests/demographics/main.xlsx', 'rb')
 
 
 def _assemble_comparison(col_names, alter_name):
@@ -20,7 +22,7 @@ def _assemble_comparison(col_names, alter_name):
             })
 
     return payload
-  
+
 def _main_raise_checkers(_unit):
     with pytest.raises(Exception) as e_info:
         _unit(42, EXCEL_FILE)
@@ -49,4 +51,3 @@ def test_generateMockData():
 
     with pytest.raises(Exception) as e_info:
         insert_mock_data(["name", 0], ["7:00am", "9:30am"], EXCEL_FILE)
-

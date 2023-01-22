@@ -1,11 +1,12 @@
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 
-import re, string
+from io import BytesIO
+import re, string, csv, io
 
 
-def separate_names(col_names, excel_file):
+def separate_names(excel_file, col_names):
     def _separated_name(col_name, list_of_test_payloads, ws, condition):
         _shared_not_text_exception(col_name, ws)
         _shared_has_email_exception(col_name, ws)
@@ -16,6 +17,25 @@ def separate_names(col_names, excel_file):
 
             ws.insert_cols(0)
             ws["A1"].value = "Last Name"
+        else:
+            first_for_test = {
+                "column": "firstname",
+                "data": list()
+            }
+
+            last_for_test = {
+                "column": "lastname",
+                "data": list()
+            }
+
+            for idx in condition:
+                first_for_test["data"].append(ws[str(_find_column_by_name("firstname", ws))+str(int(idx+1))].value)
+                last_for_test["data"].append(ws[str(_find_column_by_name("lastname", ws))+str(int(idx+1))].value)
+                
+            list_of_test_payloads.append(first_for_test)
+            list_of_test_payloads.append(last_for_test)
+            
+            return
 
         has_first = str(_find_column_by_name("firstname", ws))
         has_last = str(_find_column_by_name("lastname", ws))
@@ -25,15 +45,6 @@ def separate_names(col_names, excel_file):
                 "first": list(),
                 "last": list()
             }
-            for row_idx in condition:
-                position = has_initial + str(int(row_idx)+1)
-                cell = ws[position]
-                split_name = str(cell.value).split()
-                
-                split_cols["first"].append(split_name[0])
-                
-                if len(split_name) > 1:
-                    split_cols["last"].append(split_name[1])
 
             def _new_column(col_letter, col_position):
                 altered_for_test = {}
@@ -43,11 +54,20 @@ def separate_names(col_names, excel_file):
                 for row_idx in condition:
                     cell = split_cols[col_position][int(row_idx)-1].title()
                     ws[col_letter + str(int(row_idx)+1)].value = cell
-                    
                     altered_for_test["data"].append(cell)
 
                 return altered_for_test
 
+            for row_idx in condition:
+                position = has_initial + str(int(row_idx)+1)
+                cell = ws[position]
+                split_name = str(cell.value).split()
+                
+                split_cols["first"].append(split_name[0])
+                
+                if len(split_name) > 1:
+                    split_cols["last"].append(split_name[1])
+                
             list_of_test_payloads.append(_new_column(has_first, "first"))
             list_of_test_payloads.append(_new_column(has_last, "last"))
         
@@ -56,7 +76,7 @@ def separate_names(col_names, excel_file):
 
     return _parse_sheet_data(col_names, _separated_name, excel_file)
 
-def separate_addresses(col_names, excel_file):
+def separate_addresses(excel_file, col_names):
     def _separated_address(col_name, list_of_test_payloads, ws, condition):
         _shared_has_number_exception(col_name, ws)
         _shared_has_email_exception(col_name, ws)
@@ -78,7 +98,7 @@ def separate_addresses(col_names, excel_file):
         
     return _parse_sheet_data(col_names, _separated_address, excel_file)
 
-def capitalize_firstLetter(col_names, excel_file):
+def capitalize_firstLetter(excel_file, col_names):
     def _capitalized_first(col_name, list_of_test_payloads, ws, condition):
         _shared_has_number_exception(col_name, ws)
 
@@ -94,7 +114,7 @@ def capitalize_firstLetter(col_names, excel_file):
 
     return _parse_sheet_data(col_names, _capitalized_first, excel_file)
 
-def capitalize_all(col_names, excel_file):
+def capitalize_all(excel_file, col_names):
     def _capitalize_all(col_name, list_of_test_payloads, ws, condition):
         _shared_has_number_exception(col_name, ws)
 
@@ -125,6 +145,7 @@ def _shared_has_text_exception(col_name, ws):
 
 def _shared_has_number_exception(col_name, ws):
     cleaned_cell = _clean_String(ws[_find_column_by_name(col_name.replace(" ", "").lower(), ws)+"2"].value)
+    print(cleaned_cell)
     if cleaned_cell.isdigit():
         raise TypeError("Number cells are forbidden in this function.")    
 
@@ -160,7 +181,7 @@ def _alter_sheet_data(_alter_cell, col_name, col_names, ws):
             altered_for_test["data"].append(altered_cell)
 
         return altered_for_test
-
+    
     return _validate_column(_core, col_name, col_names, ws)
 
 def _find_column_by_name(name, ws):
@@ -172,36 +193,76 @@ def _find_column_by_name(name, ws):
 def _parse_sheet_data(col_names, handle_alterations, excel_file):
     if type(col_names) is not list or not all(list(map(lambda x: type(x) == str, col_names))):
         raise TypeError("Arg with type {} is not list of strings.".format(type(col_names)))
-
+        
     payload = {
         "test_list": list(),
         "buffer": None,
         "exception": ""
     }
 
-    wb = load_workbook(filename=excel_file, data_only=True)
-    ws = wb.active
-    
-    condition = range(1, ws.max_row)
-    
-    # Filters column names
-    for name in col_names:
-        try:
-            handle_alterations(name, payload["test_list"], ws, condition)
-        except Exception as error:
-            payload["exception"] = payload["exception"] + str(error)+" -{} is rejected! ".format(name)
+    inbound_buffer = excel_file["buffer"]
+    file_name = inbound_buffer.name if isinstance(inbound_buffer, io.BufferedReader) or isinstance(inbound_buffer, _TemporaryFileWrapper) else inbound_buffer.filename
+    file_data = inbound_buffer.read() if isinstance(inbound_buffer, io.BufferedReader) or isinstance(inbound_buffer, _TemporaryFileWrapper) else inbound_buffer.stream.read()
+    if file_name.split('.')[-1] == "csv":
+        stream = io.StringIO(file_data.decode("utf-8-sig"), newline=None)
+        rows = list(filter(lambda x: x[0] != "", list(csv.reader(stream))))
+        condition = range(1, len(rows))
+        
+        wb = Workbook()
+        ws = wb.worksheets[0]
+        ws.title = "A Snazzy Title"
+        
+        for row_idx in range(0, len(rows)):
+            row = rows[row_idx]
 
-            continue
+            for column_index in range(0, len(row)):
+                cell = row[column_index]
+                column_letter = get_column_letter((column_index + 1))
+                ws[column_letter + str(int(row_idx)+1)].value = cell
 
-    if not len(payload["test_list"]):
-        return payload 
-    
-    tmp = NamedTemporaryFile()
-    wb.save(tmp.name)
-    tmp.seek(0)
-    stream = tmp.read()
-    payload["buffer"] = stream
+        # Filters column names
+        for name in col_names:
+            try:
+                handle_alterations(name, payload["test_list"], ws, condition)
+            except Exception as error:
+                payload["exception"] = payload["exception"]+str(error)+" -{} is rejected! ".format(name)
 
-    return payload
+                continue
+
+        if not len(payload["test_list"]):
+            return payload 
+        
+        tmp = NamedTemporaryFile()
+        wb.save(tmp.name)
+        tmp.seek(0)
+        stream = tmp
+        payload["buffer"] = stream
+
+        return payload
+    else:
+        wb = load_workbook(filename=BytesIO(file_data), data_only=True)
+        ws = wb.active
+        
+        condition = range(1, ws.max_row)
+        
+        # Filters column names
+        for name in col_names:
+            try:
+                handle_alterations(name, payload["test_list"], ws, condition)
+            except Exception as error:
+                payload["exception"] = payload["exception"] + str(error)+" -{} is rejected! ".format(name)
+
+                continue
+
+        if not len(payload["test_list"]):
+            return payload 
+        
+        tmp = NamedTemporaryFile()
+        wb.save(tmp.name)
+        tmp.seek(0)
+        stream = tmp
+        payload["buffer"] = stream
+
+        return payload
 
     
