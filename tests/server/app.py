@@ -44,7 +44,7 @@ def index():
 def get_event_preset():
     EXCEL_FILE = {'buffer': request.files["file"], 'exception': ''}
     preset_payload = json.loads(request.form["preset_fields"])
-
+    print(preset_payload)
     try:
         event_formatted = (pipe(EXCEL_FILE)
             [separate_names](preset_payload["columns"][0])
